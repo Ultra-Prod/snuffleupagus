@@ -18,6 +18,7 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_var.h"
 #include "ext/pcre/php_pcre.h"
+#include "ext/session/php_session.h"
 #include "php.h"
 #include "php_ini.h"
 #include "zend_hash.h"
@@ -40,6 +41,7 @@
 #include "sp_unserialize.h"
 #include "sp_upload_validation.h"
 #include "sp_utils.h"
+#include "sp_session.h"
 
 
 extern zend_module_entry snuffleupagus_module_entry;
@@ -64,6 +66,8 @@ bool is_config_valid;
 HashTable *disabled_functions_hook;
 HashTable *sp_internal_functions_hook;
 HashTable *sp_eval_blacklist_functions_hook;
+ps_module *session_mod;
+ps_module *session_mod_orig;
 ZEND_END_MODULE_GLOBALS(snuffleupagus)
 
 #define SNUFFLEUPAGUS_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(snuffleupagus, v)
