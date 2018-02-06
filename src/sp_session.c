@@ -1,5 +1,7 @@
 #include "php_snuffleupagus.h"
 
+#ifdef HAVE_PHP_SESSION
+
 ZEND_DECLARE_MODULE_GLOBALS(snuffleupagus)
 
 static int sp_hook_s_read(PS_READ_ARGS) {
@@ -31,3 +33,4 @@ void hook_session() {
 	
 	PS(mod) = SNUFFLEUPAGUS_G(session_mod);
 }
+#endif // HAVE_PHP_SESSION
