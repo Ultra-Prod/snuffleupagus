@@ -9,7 +9,7 @@ static int sp_hook_s_write(PS_WRITE_ARGS) {
 	return SNUFFLEUPAGUS_G(session_mod_orig)->s_write(mod_data, key, val, maxlifetime);
 }
 
-void sp_hook_session() {
+void hook_session() {
 	if (PS(mod) == NULL || SNUFFLEUPAGUS_G(session_mod) == PS(mod)) {
 		return;
 	}

@@ -221,6 +221,7 @@ static PHP_INI_MH(OnUpdateConfiguration) {
   }
   hook_disabled_functions();
   hook_execute();
+	hook_session();
 
   if (NULL != SNUFFLEUPAGUS_G(config).config_snuffleupagus->encryption_key) {
     if (SNUFFLEUPAGUS_G(config).config_unserialize->enable) {
