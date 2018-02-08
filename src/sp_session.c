@@ -25,20 +25,30 @@ void hook_session_internal() {
 			return;
 		}
 	}
-
+	memcpy(SNUFFLEUPAGUS_G(session_mod), PS(mod), sizeof(ps_module));
 	SNUFFLEUPAGUS_G(session_mod_orig) = PS(mod);
-	memcpy(SNUFFLEUPAGUS_G(session_mod), SNUFFLEUPAGUS_G(session_mod_orig),
-			sizeof(ps_module));
-
 	SNUFFLEUPAGUS_G(session_mod)->s_read = sp_hook_s_read;
-
 	SNUFFLEUPAGUS_G(session_mod)->s_write = sp_hook_s_write;
 	
 	PS(mod) = SNUFFLEUPAGUS_G(session_mod);
 }
 
 static PHP_INI_MH(sp_OnUpdateSaveHandler) {
-	return OnUpdateSaveHandler_orig(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
+	if (stage == PHP_INI_STAGE_RUNTIME
+			&& PS(session_status) == php_session_none
+			&& SNUFFLEUPAGUS_G(session_mod_orig)
+		  && zend_string_equals_literal(new_value, "user") == 0
+			&& 0 == strcmp(((ps_module*)SNUFFLEUPAGUS_G(session_mod_orig))->s_name, "user")) {
+		return SUCCESS;	
+	}
+
+	PS(mod) = SNUFFLEUPAGUS_G(session_mod_orig);
+
+	int ret = OnUpdateSaveHandler_orig(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
+
+	hook_session_internal();
+
+	return ret;
 }
 
 static int sp_session_startup_func(INIT_FUNC_ARGS) {
@@ -65,6 +75,7 @@ void hook_session() {
 		ini_entry->on_modify = sp_OnUpdateSaveHandler;
 	}
 
+	SNUFFLEUPAGUS_G(session_mod_orig) = NULL;
 	hook_session_internal();
 }
 #endif // HAVE_PHP_SESSION
