@@ -214,7 +214,8 @@ static bool is_param_matching(zend_execute_data* execute_data,
 }
 
 bool should_disable(zend_execute_data* execute_data, const char* builtin_name,
-                    const char* builtin_param, const char* builtin_param_name) {
+                    const char* builtin_param, const char* builtin_param_name,
+										bool at_runtime) {
   char current_file_hash[SHA256_SIZE * 2 + 1] = {0};
   const sp_list_node* config = get_config_node(builtin_name);
   char* complete_path_function = NULL;
@@ -244,6 +245,10 @@ bool should_disable(zend_execute_data* execute_data, const char* builtin_name,
         (sp_disabled_function*)(config->data);
     const char* arg_name = NULL;
     const char* arg_value_str = NULL;
+
+		if (false == at_runtime && config_node->hooked == true) {
+			goto next;
+		}
 
     /* The order matters, since when we have `config_node->functions_list`,
     we also do have `config_node->function` */
@@ -434,7 +439,7 @@ ZEND_FUNCTION(check_disabled_function) {
   void (*orig_handler)(INTERNAL_FUNCTION_PARAMETERS);
   const char* current_function_name = get_active_function_name(TSRMLS_C);
 
-  if (true == should_disable(execute_data, NULL, NULL, NULL)) {
+  if (true == should_disable(execute_data, NULL, NULL, NULL, false)) {
     sp_terminate();
   }
 
@@ -447,20 +452,38 @@ ZEND_FUNCTION(check_disabled_function) {
   }
 }
 
-static int hook_functions(const sp_list_node* config) {
+ZEND_FUNCTION(check_disabled_function_re) {
+  void (*orig_handler)(INTERNAL_FUNCTION_PARAMETERS);
+  const char* current_function_name = get_active_function_name(TSRMLS_C);
+
+  if (true == should_disable(execute_data, NULL, NULL, NULL, true)) {
+    sp_terminate();
+  }
+
+  orig_handler = zend_hash_str_find_ptr(
+      SNUFFLEUPAGUS_G(disabled_functions_hook), current_function_name,
+      strlen(current_function_name));
+  orig_handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+  if (true == should_drop_on_ret(return_value, execute_data)) {
+    sp_terminate();
+  }
+}
+
+static int hook_functions(sp_list_node* config) {
   while (config && config->data) {
-    const char* function_name = ((sp_disabled_function*)config->data)->function;
-    const sp_pcre* function_name_regexp =
-        ((sp_disabled_function*)config->data)->r_function;
+    sp_disabled_function* config_node = (sp_disabled_function*)config->data;
 
-    assert(function_name || function_name_regexp);
+    assert(config_node->function || config_node->r_function);
 
-    if (NULL != function_name) {  // hook function by name
-      HOOK_FUNCTION(function_name, disabled_functions_hook,
-                    PHP_FN(check_disabled_function));
-    } else if (NULL != function_name_regexp) {  // hook function by regexp
-      HOOK_FUNCTION_BY_REGEXP(function_name_regexp, disabled_functions_hook,
-                              PHP_FN(check_disabled_function));
+		config_node->hooked = false;
+    if (config_node->function) {  // hook function by name
+      if (SUCCESS == HOOK_FUNCTION(config_node->function, disabled_functions_hook,
+                    PHP_FN(check_disabled_function))) {
+				config_node->hooked = true;
+					}
+    } else if (config_node->r_function) {  // hook function by regexp
+      HOOK_FUNCTION_BY_REGEXP(config_node->r_function, disabled_functions_hook,
+                              PHP_FN(check_disabled_function_re));
     }
 
     config = config->next;

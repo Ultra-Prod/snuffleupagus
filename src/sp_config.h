@@ -113,6 +113,8 @@ typedef struct {
   sp_tree *var;
 
   sp_cidr *cidr;
+
+	bool hooked;
 } sp_disabled_function;
 
 typedef struct {

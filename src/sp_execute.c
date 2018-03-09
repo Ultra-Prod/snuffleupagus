@@ -35,7 +35,7 @@ ZEND_COLD static inline void terminate_if_writable(const char *filename) {
   }
 }
 
-static void inline is_builtin_matching(const char *restrict const filename,
+inline static void is_builtin_matching(const char *restrict const filename,
                                        const char *restrict const function_name,
                                        const char *restrict const param_name,
                                        const sp_list_node *config) {
@@ -44,7 +44,7 @@ static void inline is_builtin_matching(const char *restrict const filename,
   }
 
   if (true == should_disable(EG(current_execute_data), function_name, filename,
-                             param_name)) {
+                             param_name, true)) {
     sp_terminate();
   }
 }
@@ -140,7 +140,7 @@ static void sp_execute_ex(zend_execute_data *execute_data) {
       !execute_data->prev_execute_data->func ||
       !ZEND_USER_CODE(execute_data->prev_execute_data->func->type) ||
       !execute_data->prev_execute_data->opline) {
-    if (UNEXPECTED(true == should_disable(execute_data, NULL, NULL, NULL))) {
+    if (UNEXPECTED(true == should_disable(execute_data, NULL, NULL, NULL, true))) {
       sp_terminate();
     }
   } else if ((execute_data->prev_execute_data->opline->opcode ==
@@ -149,7 +149,7 @@ static void sp_execute_ex(zend_execute_data *execute_data) {
                   ZEND_DO_UCALL ||
               execute_data->prev_execute_data->opline->opcode ==
                   ZEND_DO_FCALL_BY_NAME)) {
-    if (UNEXPECTED(true == should_disable(execute_data, NULL, NULL, NULL))) {
+    if (UNEXPECTED(true == should_disable(execute_data, NULL, NULL, NULL, true))) {
       sp_terminate();
     }
   }
